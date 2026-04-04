@@ -24,6 +24,7 @@ The following workspace rules are STRICTLY ENFORCED for this project:
 JupyterLab 4.x frontend extension that adds a "Paste as Markdown" context menu item. When users paste clipboard content (HTML formatted text, DOCX content with formatting), the extension converts it to markdown before inserting into text editors and notebook cells. Generated from `jupyterlab/extension-template` (Copier v4.5.2).
 
 **Technology Stack**:
+
 - TypeScript, JupyterLab 4.x frontend extension API
 - Build: webpack, babel, tsc, jlpm (JupyterLab's pinned yarn)
 - Testing: Jest (unit), Playwright/Galata (integration)

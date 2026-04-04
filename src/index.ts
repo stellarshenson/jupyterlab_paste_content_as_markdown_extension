@@ -8,8 +8,7 @@ import { showErrorMessage } from '@jupyterlab/apputils';
 import { pasteIcon } from '@jupyterlab/ui-components';
 import TurndownService from 'turndown';
 
-const PLUGIN_ID =
-  'jupyterlab_paste_content_as_markdown_extension:plugin';
+const PLUGIN_ID = 'jupyterlab_paste_content_as_markdown_extension:plugin';
 const COMMAND_ID = 'paste-as-markdown:paste';
 
 /**
