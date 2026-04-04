@@ -5,6 +5,7 @@ import {
 import { IEditorTracker } from '@jupyterlab/fileeditor';
 import { INotebookTracker } from '@jupyterlab/notebook';
 import { showErrorMessage } from '@jupyterlab/apputils';
+import { pasteIcon } from '@jupyterlab/ui-components';
 import TurndownService from 'turndown';
 
 const PLUGIN_ID =
@@ -138,6 +139,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     app.commands.addCommand(COMMAND_ID, {
       label: 'Paste as Markdown',
+      icon: pasteIcon,
       caption: 'Paste clipboard content converted to markdown',
       execute: async () => {
         // Try HTML first, fall back to plain text
@@ -194,20 +196,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-    // Register context menu items
+    // Register context menu items just below the built-in paste command.
+    // File editor: paste is rank 5, select-all is rank 6 -> use 5.5
+    // Notebook cell: paste-cell-below is rank 3, separator is rank 4 -> use 3.5
     if (editorTracker) {
       app.contextMenu.addItem({
         command: COMMAND_ID,
         selector: '.jp-FileEditor',
-        rank: 3
+        rank: 5.5
       });
     }
 
     if (notebookTracker) {
       app.contextMenu.addItem({
         command: COMMAND_ID,
-        selector: '.jp-Cell .jp-InputArea-editor',
-        rank: 3
+        selector: '.jp-Notebook .jp-Cell',
+        rank: 3.5
       });
     }
 
