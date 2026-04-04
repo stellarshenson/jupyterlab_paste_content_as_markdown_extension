@@ -1,6 +1,6 @@
 {
     "name": "jupyterlab_paste_content_as_markdown_extension",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "JupyterLab extension to paste clipboard content (HTML, formatted text) as markdown into text editors and notebook cells",
     "keywords": [
         "jupyter",
