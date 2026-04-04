@@ -15,6 +15,8 @@ Paste clipboard content as markdown into JupyterLab. Copy formatted text from a 
 
 **Full disclosure:** This extension adds one context menu item. It reads your clipboard, converts whatever formatting it finds to markdown, and pastes it. That's it. No AI, no blockchain, no cloud sync. Just clipboard-to-markdown, the way nature intended.
 
+![Paste as Markdown](.resources/screenshot.png)
+
 ## Features
 
 - **Paste as Markdown context menu** - Right-click in any text editor or notebook cell to find "Paste as Markdown" right next to the regular paste
