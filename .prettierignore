@@ -1,0 +1,6 @@
+node_modules
+**/node_modules
+**/lib
+**/package.json
+!/package.json
+jupyterlab_paste_content_as_markdown_extension

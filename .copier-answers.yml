@@ -1,0 +1,18 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v4.5.2
+_src_path: https://github.com/jupyterlab/extension-template
+author_email: konrad.jelen@gmail.com
+author_name: Stellars Henson
+has_ai_rules: false
+has_binder: false
+has_settings: false
+kind: frontend
+labextension_name: jupyterlab_paste_content_as_markdown_extension
+project_short_description: Jupyterlab extension to paste contents of the clipboard
+    (e.g. html formatted text or content of docx with formatting) into the text (e.g.
+    text editor, jupyter notebook cell etc)as markdown code. There will be a 'paste
+    as markdown' item in the context menu below 'paste' out of the box item
+python_name: jupyterlab_paste_content_as_markdown_extension
+repository: ''
+test: true
+
