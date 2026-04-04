@@ -11,28 +11,50 @@
 > [!TIP]
 > This extension is part of the [stellars_jupyterlab_extensions](https://github.com/stellarshenson/stellars_jupyterlab_extensions) metapackage. Install all Stellars extensions at once: `pip install stellars_jupyterlab_extensions`
 
-Paste clipboard content as markdown into JupyterLab text editors and notebook cells. Right-click and select "Paste as Markdown" to convert HTML formatted text or DOCX content with formatting into clean markdown code.
+Paste clipboard content as markdown into JupyterLab. Copy formatted text from a web page, email, or Word document, right-click in any editor or notebook cell, and select "Paste as Markdown" - the HTML formatting is converted to clean markdown on the fly.
 
 **Full disclosure:** This extension adds one context menu item. It reads your clipboard, converts whatever formatting it finds to markdown, and pastes it. That's it. No AI, no blockchain, no cloud sync. Just clipboard-to-markdown, the way nature intended.
 
 ## Features
 
-- **Paste as Markdown context menu** - Right-click in any text editor or notebook cell to paste clipboard content as markdown
-- **HTML to markdown conversion** - Converts formatted HTML content (copied from web pages, emails, documents) into markdown
-- **DOCX content support** - Handles rich text copied from Word documents and similar editors
-- **Preserves structure** - Maintains headings, lists, links, bold, italic, and code blocks during conversion
-- **Works everywhere in JupyterLab** - Text editors, markdown cells, code cells, and any editable area
+- **Paste as Markdown context menu** - Right-click in any text editor or notebook cell to find "Paste as Markdown" right next to the regular paste
+- **HTML to markdown conversion** - Converts formatted HTML content copied from web pages, emails, and documents into clean markdown using ATX headings, fenced code blocks, and standard list markers
+- **Rich text support** - Handles content copied from Word, Google Docs, Confluence, Notion, and other rich text editors that place HTML on the clipboard
+- **Preserves structure** - Maintains headings, lists, links, bold, italic, code blocks, tables, and images during conversion
+- **Plain text fallback** - When no HTML is available on the clipboard, pastes the plain text content as-is
+- **Works everywhere in JupyterLab** - File editors, markdown cells, code cells, and any editable area
 
-## Installation
+## How It Works
 
-Requires JupyterLab 4.0.0 or higher.
+Most applications place both plain text and HTML on the clipboard when you copy formatted content. This extension reads the HTML version via the browser Clipboard API, runs it through [Turndown](https://github.com/mixmark-io/turndown) to produce markdown, and inserts the result at your cursor position. If no HTML is found, it falls back to plain text.
+
+## Requirements
+
+- JupyterLab >= 4.0.0
+
+> [!NOTE]
+> The browser Clipboard API requires a secure context (HTTPS or localhost). If JupyterLab is served over plain HTTP on a remote host, the clipboard read will fail and you will see an error dialog. Use HTTPS or an SSH tunnel in that case.
+
+## Install
 
 ```bash
 pip install jupyterlab_paste_content_as_markdown_extension
 ```
+
+## Usage
+
+1. Copy formatted content from any source (web page, Word, Google Docs, email)
+2. Right-click in a JupyterLab text editor or notebook cell
+3. Select **Paste as Markdown** from the context menu
+
+The converted markdown appears at your cursor position.
 
 ## Uninstall
 
 ```bash
 pip uninstall jupyterlab_paste_content_as_markdown_extension
 ```
+
+## License
+
+BSD 3-Clause License
