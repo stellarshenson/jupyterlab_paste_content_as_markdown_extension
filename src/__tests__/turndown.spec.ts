@@ -152,9 +152,9 @@ describe('convertHtmlToMarkdown', () => {
       expect(markdown).toBe('| A |\n| --- |\n| x |');
     });
 
-    it('keeps the surrounding text when a nested table has no rows', () => {
-      // A rowless nested table used to throw inside the plugin, and the
-      // caught error discarded the entire paste.
+    it('flattens an empty nested table without disturbing its surroundings', () => {
+      // An empty nested table is replaced by empty text, so neither the cell
+      // holding it nor the paragraphs either side of the outer table move.
       const markdown = convert(
         '<p>Report</p><table><tr><td>cell<table></table></td></tr></table><p>End</p>'
       );
@@ -288,6 +288,30 @@ describe('convertHtmlToMarkdown', () => {
       );
 
       expect(markdown).toContain('| 12 34 T: 1 M: 2 | b |');
+    });
+
+    it('separates a value that precedes a block in a nested cell', () => {
+      // Generated email HTML is minified, so there is no source whitespace to
+      // fall back on. Padding only the closing side of the block leaves the
+      // two numbers fused into one plausible-looking wrong number.
+      const markdown = convert(
+        '<table><tr><td><table><tr><td>5550100<div>5550200</div></td>' +
+          '</tr></table></td><td>z</td></tr></table>'
+      );
+
+      expect(markdown).toContain('| 5550100 5550200 | z |');
+    });
+
+    it('separates the text a deeper table leaves behind from its neighbours', () => {
+      // The innermost table becomes a text node inside a cell that already
+      // holds text either side of it. Without a boundary of its own that text
+      // node fuses to both neighbours.
+      const markdown = convert(
+        '<table><tr><td><table><tr><td>A<table><tr><td>B</td></tr>' +
+          '</table>C</td></tr></table></td><td>z</td></tr></table>'
+      );
+
+      expect(markdown).toContain('| A B C | z |');
     });
 
     it('flattens the deepest table first, three levels down', () => {
@@ -495,6 +519,14 @@ describe('convertHtmlToMarkdown', () => {
     it('uses asterisks for emphasis', () => {
       expect(convert('<em>a</em> and <strong>b</strong>')).toBe(
         '*a* and **b**'
+      );
+    });
+
+    it('leaves a bracketed URL as a working autolink', () => {
+      // The RFC-style <https://...> convention. Escaping the angle bracket
+      // would leave a link whose href carries the closing bracket as %3E.
+      expect(convert('<p>See &lt;https://example.com&gt; now</p>')).toBe(
+        'See <https://example.com> now'
       );
     });
 

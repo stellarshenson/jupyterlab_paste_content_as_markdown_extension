@@ -82,7 +82,8 @@ function createTurndownService(): TurndownService {
   // gives every surviving table a `<thead>`, so the GFM plugin's `keep` for
   // headerless tables can no longer fire.
   const escape = service.escape.bind(service);
-  service.escape = (text: string) => escape(text).replace(/</g, '\\<');
+  service.escape = (text: string) =>
+    escape(text).replace(/<(?!(?:https?|mailto|ftp):)/g, '\\<');
 
   return service;
 }
@@ -144,7 +145,10 @@ function normaliseInlineMarkup(root: Document): void {
  * signature become one number, with nothing to show it happened.
  */
 function tableText(table: HTMLTableElement): string {
-  table.querySelectorAll('br,p,div,li').forEach(node => node.after(' '));
+  table.querySelectorAll(`${BLOCK_CONTENT},br`).forEach(node => {
+    node.before(' ');
+    node.after(' ');
+  });
 
   return Array.from(table.rows)
     .map(row =>
@@ -176,7 +180,7 @@ function flattenNestedTables(root: Document): void {
     .forEach(nested => {
       const images = Array.from(nested.querySelectorAll('img'));
       nested.replaceWith(
-        root.createTextNode(tableText(nested as HTMLTableElement)),
+        root.createTextNode(` ${tableText(nested as HTMLTableElement)} `),
         ...images
       );
     });
