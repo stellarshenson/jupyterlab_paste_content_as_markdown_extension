@@ -14,9 +14,16 @@ jupyterlab_paste_content_as_markdown_extension/_version.py
 # Integration tests
 ui-tests/test-results/
 ui-tests/playwright-report/
+junit.xml
 
 # Playwright MCP temp files
 .playwright-mcp/
+
+# Project-local nodeenv (Makefile 1.32+)
+.nodeenv/
+
+# graphify artefacts
+tmp/
 
 # Created by https://www.gitignore.io/api/python
 # Edit at https://www.gitignore.io/?templates=python
