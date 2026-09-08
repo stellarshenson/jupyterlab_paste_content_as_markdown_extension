@@ -66,6 +66,10 @@ The converted markdown replaces the current selection, or is inserted at the cur
 pip uninstall jupyterlab_paste_content_as_markdown_extension
 ```
 
+## Contributing
+
+If you would like to contribute to this extension, please refer to the [Contributing Guide](CONTRIBUTING.md).
+
 ## License
 
 BSD 3-Clause License

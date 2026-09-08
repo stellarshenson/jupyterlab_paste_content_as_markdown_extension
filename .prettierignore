@@ -4,3 +4,5 @@ node_modules
 **/package.json
 !/package.json
 jupyterlab_paste_content_as_markdown_extension
+eslint.config.mjs
+.venv
