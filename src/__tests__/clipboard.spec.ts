@@ -104,6 +104,53 @@ describe('clipboard', () => {
       });
     });
 
+    it('carries the plain text of the same item, without a second read', async () => {
+      const readText = jest.fn();
+      stubClipboard({
+        read: async () => [
+          {
+            types: ['text/html', 'text/plain'],
+            getType: async (type: string) => ({
+              text: async () => (type === 'text/html' ? '<p>x</p>' : 'x')
+            })
+          }
+        ],
+        readText
+      });
+
+      await expect(readClipboard()).resolves.toEqual({
+        kind: 'html',
+        html: '<p>x</p>',
+        text: 'x'
+      });
+      expect(readText).not.toHaveBeenCalled();
+    });
+
+    it('keeps the HTML when the plain text of the same item fails to read', async () => {
+      // The plain flavour is optional; its failure must not discard the HTML
+      // already in hand and send the paste down the error path.
+      stubClipboard({
+        read: async () => [
+          {
+            types: ['text/html', 'text/plain'],
+            getType: async (type: string) => {
+              if (type === 'text/plain') {
+                throw new DOMException('denied', 'NotAllowedError');
+              }
+              return { text: async () => '<p>x</p>' };
+            }
+          }
+        ],
+        readText: async () => 'x'
+      });
+
+      await expect(readClipboard()).resolves.toEqual({
+        kind: 'html',
+        html: '<p>x</p>',
+        text: undefined
+      });
+    });
+
     it('falls back to text when no HTML flavour is offered', async () => {
       stubClipboard({
         read: async () => [clipboardItem('text/plain', 'x')],

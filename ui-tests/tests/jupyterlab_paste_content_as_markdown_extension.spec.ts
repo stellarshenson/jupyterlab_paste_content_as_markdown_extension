@@ -19,7 +19,7 @@ test('should emit an activation console message', async ({ page }) => {
     logs.filter(
       s =>
         s ===
-        'JupyterLab extension jupyterlab_paste_content_as_markdown_extension is activated!'
+        '[paste-as-markdown] JupyterLab extension jupyterlab_paste_content_as_markdown_extension is activated!'
     )
   ).toHaveLength(1);
 });

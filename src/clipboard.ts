@@ -10,9 +10,13 @@ const LOG_PREFIX = '[paste-as-markdown]';
 /**
  * Outcome of a clipboard read. The failure modes are kept apart because only
  * some of them are actionable by the user, and they need different advice.
+ *
+ * An HTML result carries the plain-text flavour of the same clipboard item
+ * where one was offered, so the caller can fall back to it without asking for
+ * clipboard permission a second time.
  */
 export type ClipboardResult =
-  | { kind: 'html'; html: string }
+  | { kind: 'html'; html: string; text?: string }
   | { kind: 'text'; text: string }
   | { kind: 'empty' }
   | { kind: 'unavailable' }
@@ -72,8 +76,19 @@ export async function readClipboard(): Promise<ClipboardResult> {
       const items = await navigator.clipboard.read();
       for (const item of items) {
         if (item.types.includes('text/html')) {
-          const blob = await item.getType('text/html');
-          return { kind: 'html', html: await blob.text() };
+          const html = await (await item.getType('text/html')).text();
+          // Taken from the same item, while the permission is already
+          // granted: the HTML can convert to nothing, and a second read is
+          // both a second permission prompt and a second chance for the
+          // clipboard to have changed underneath. Caught on its own, so a
+          // failing optional flavour cannot discard the HTML already read.
+          const text = item.types.includes('text/plain')
+            ? await item
+                .getType('text/plain')
+                .then(blob => blob.text())
+                .catch(() => undefined)
+            : undefined;
+          return { kind: 'html', html, text };
         }
       }
     } catch (err) {

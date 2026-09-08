@@ -13,11 +13,7 @@ import type { CodeEditor } from '@jupyterlab/codeeditor';
 import { IEditorTracker } from '@jupyterlab/fileeditor';
 import { INotebookTracker } from '@jupyterlab/notebook';
 import { pasteIcon } from '@jupyterlab/ui-components';
-import {
-  clipboardErrorMessage,
-  readClipboard,
-  readClipboardText
-} from './clipboard';
+import { clipboardErrorMessage, readClipboard } from './clipboard';
 import { convertHtmlToMarkdown } from './turndown';
 
 const PLUGIN_ID = 'jupyterlab_paste_content_as_markdown_extension:plugin';
@@ -82,7 +78,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     notebookTracker: INotebookTracker | null
   ) => {
     console.log(
-      'JupyterLab extension jupyterlab_paste_content_as_markdown_extension is activated!'
+      '[paste-as-markdown] JupyterLab extension jupyterlab_paste_content_as_markdown_extension is activated!'
     );
 
     app.commands.addCommand(COMMAND_ID, {
@@ -116,20 +112,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         // Some clipboard HTML converts to nothing at all - Chrome's bare
         // fragment wrapper, or a Word blank paragraph. Fall back to the plain
-        // text flavour rather than silently inserting an empty string.
+        // text flavour read alongside it rather than silently inserting an
+        // empty string.
         if (clipboard.kind === 'html' && !markdown.trim()) {
-          const fallback = await readClipboardText();
-          if (fallback.kind !== 'text') {
-            await showErrorMessage(
-              COMMAND_LABEL,
-              clipboardErrorMessage(fallback)
-            );
-            return;
-          }
-          markdown = fallback.text;
+          markdown = clipboard.text ?? '';
         }
 
-        if (!markdown.trim()) {
+        // Emptiness, not blankness: a clipboard holding spaces or a tab is
+        // content the user copied deliberately, and indentation in particular
+        // is worth pasting.
+        if (!markdown) {
           await showErrorMessage(
             COMMAND_LABEL,
             clipboardErrorMessage({ kind: 'empty' })
