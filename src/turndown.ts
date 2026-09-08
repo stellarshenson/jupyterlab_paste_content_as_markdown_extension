@@ -1,5 +1,5 @@
 import TurndownService from 'turndown';
-import { tables } from 'turndown-plugin-gfm';
+import { strikethrough, tables, taskListItems } from 'turndown-plugin-gfm';
 
 /**
  * HTML-to-markdown conversion.
@@ -57,8 +57,10 @@ function createTurndownService(): TurndownService {
   });
 
   // Turndown core has no table rules; without this every cell becomes its own
-  // paragraph and the row/column structure is unrecoverable.
-  service.use(tables);
+  // paragraph and the row/column structure is unrecoverable. It has no rule
+  // for strikethrough or for a task-list checkbox either, so both are dropped
+  // without a trace unless the plugin supplies them.
+  service.use([tables, strikethrough, taskListItems]);
 
   // Table cells, overriding the GFM plugin's own rule. Added after `use`, so
   // it takes precedence. A literal pipe or a line break inside a cell would
@@ -137,12 +139,15 @@ function normaliseInlineMarkup(root: Document): void {
 }
 
 /**
- * A table's values as one line, cells separated and rows delimited.
+ * A table's values as one line, caption first, cells separated and rows
+ * delimited.
  *
  * The table is on its way out of the document, so its subtree is rewritten in
  * place rather than copied. Two things `textContent` alone would lose: a cell
  * holding two lines fuses them into one token - two phone numbers in an email
- * signature become one number, with nothing to show it happened.
+ * signature become one number, with nothing to show it happened; and the
+ * caption sits outside `rows`, so the line that names the values goes missing
+ * altogether.
  */
 function tableText(table: HTMLTableElement): string {
   table.querySelectorAll(`${BLOCK_CONTENT},br`).forEach(node => {
@@ -150,13 +155,17 @@ function tableText(table: HTMLTableElement): string {
     node.after(' ');
   });
 
-  return Array.from(table.rows)
-    .map(row =>
+  const caption = table.caption?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+
+  return [
+    caption,
+    ...Array.from(table.rows).map(row =>
       Array.from(row.cells)
         .map(cell => cell.textContent?.replace(/\s+/g, ' ').trim() ?? '')
         .filter(Boolean)
         .join(' ')
     )
+  ]
     .filter(Boolean)
     .join('; ');
 }
@@ -187,13 +196,31 @@ function flattenNestedTables(root: Document): void {
 }
 
 /**
+ * Replace a cell with an equivalent one under the other cell tag.
+ *
+ * The contents are moved rather than serialised, so nodes already rewritten
+ * by an earlier pass keep their identity. `align` is the one attribute
+ * anything downstream reads: the plugin turns it into the delimiter row's
+ * alignment marker.
+ */
+function retag(root: Document, cell: Element, tagName: 'td' | 'th'): void {
+  const replacement = root.createElement(tagName);
+  const align = cell.getAttribute('align');
+  if (align) {
+    replacement.setAttribute('align', align);
+  }
+  while (cell.firstChild) {
+    replacement.appendChild(cell.firstChild);
+  }
+  cell.replaceWith(replacement);
+}
+
+/**
  * Move the first row into a `<thead>`, converting its cells to `<th>`.
  *
  * This is the point of the whole normalisation: the plugin treats any row
  * whose parent is a `<thead>` as the heading row without further tests, so a
  * `<colgroup>`, a mixed `td`/`th` row or a leading `<caption>` stop mattering.
- * The cell contents are moved rather than serialised, so nodes already
- * rewritten by an earlier pass keep their identity.
  */
 function promoteHeaderRow(
   root: Document,
@@ -201,20 +228,9 @@ function promoteHeaderRow(
   row: HTMLTableRowElement
 ): void {
   Array.from(row.cells).forEach(cell => {
-    if (cell.tagName === 'TH') {
-      return;
+    if (cell.tagName !== 'TH') {
+      retag(root, cell, 'th');
     }
-    const heading = root.createElement('th');
-    // `align` is the one attribute anything downstream reads: the plugin
-    // turns it into the delimiter row's alignment marker.
-    const align = cell.getAttribute('align');
-    if (align) {
-      heading.setAttribute('align', align);
-    }
-    while (cell.firstChild) {
-      heading.appendChild(cell.firstChild);
-    }
-    cell.replaceWith(heading);
   });
 
   const head = root.createElement('thead');
@@ -282,10 +298,18 @@ function normaliseTables(root: Document): void {
     // The plugin writes one delimiter cell per child node of the header row,
     // so anything in a row that is not a cell desynchronises the delimiter
     // from the header and GFM rejects the table outright.
-    rows.forEach(row => {
+    rows.forEach((row, index) => {
       Array.from(row.children).forEach(child => {
         if (child.tagName !== 'TD' && child.tagName !== 'TH') {
           child.remove();
+          return;
+        }
+        // The row promoted below is the table's only heading row. A row of
+        // <th> left behind it reads as a heading row too - a blank first row
+        // above the real header is the common shape - and takes its own
+        // delimiter line into the middle of the data.
+        if (index > 0 && child.tagName === 'TH') {
+          retag(root, child, 'td');
         }
       });
     });
@@ -304,7 +328,12 @@ function normaliseTables(root: Document): void {
       }
     });
 
-    promoteHeaderRow(root, table, rows[0]);
+    promoteHeaderRow(
+      root,
+      table,
+      rows.find(row => row.textContent?.trim() || row.querySelector('img')) ??
+        rows[0]
+    );
   });
 }
 

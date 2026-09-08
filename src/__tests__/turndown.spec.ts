@@ -343,6 +343,17 @@ describe('convertHtmlToMarkdown', () => {
       );
     });
 
+    it('keeps the caption of a table it flattens into text', () => {
+      // The caption is what names the values, and it sits outside `rows`.
+      const markdown = convert(
+        '<table><tr><td>' +
+          '<table><caption>Q1 totals</caption><tr><td>x</td></tr></table>' +
+          '</td><td>z</td></tr></table>'
+      );
+
+      expect(markdown).toContain('Q1 totals; x');
+    });
+
     it('reads a <thead> written after the <tbody> as the header', () => {
       // `table.rows` returns thead rows first whatever the tree order, so the
       // row snapshot has to be taken before the thead is unwrapped. Taken
@@ -366,6 +377,25 @@ describe('convertHtmlToMarkdown', () => {
       );
 
       expect(markdown).toBe('| A | B |\n| --- | --- |\n| 1 | 2 |');
+    });
+
+    it('leaves one delimiter line when a real header row follows a blank one', () => {
+      // A spreadsheet copy that starts with a spacer row. The first row
+      // carrying content is promoted, and a <th> row left behind it would
+      // otherwise read as a second heading row and put a delimiter line in
+      // the middle of the data.
+      const markdown = convert(
+        '<table><tr><td></td><td></td></tr>' +
+          '<tr><th>Name</th><th>Qty</th></tr>' +
+          '<tr><td>Bolt</td><td>12</td></tr></table>'
+      );
+
+      expect(
+        markdown.split('\n').filter(line => /^\| ---/.test(line))
+      ).toHaveLength(1);
+      expect(markdown).toContain('| Name | Qty |');
+      expect(markdown.startsWith('| Name | Qty |')).toBe(true);
+      expect(markdown).toContain('| Bolt | 12 |');
     });
 
     it('lifts every caption, not only the first', () => {
@@ -538,6 +568,18 @@ describe('convertHtmlToMarkdown', () => {
       expect(convert('<p>use <code>a &lt; b</code> here</p>')).toBe(
         'use `a < b` here'
       );
+    });
+
+    it('keeps strikethrough and checkbox state', () => {
+      // Both are GFM constructs the installed plugin has rules for; without
+      // them the text reads as unstruck and every task looks unfinished.
+      expect(convert('<p><del>gone</del> stays</p>')).toBe('~gone~ stays');
+      expect(
+        convert(
+          '<ul><li><input type="checkbox" checked>done</li>' +
+            '<li><input type="checkbox">todo</li></ul>'
+        )
+      ).toBe('-   [x] done\n-   [ ] todo');
     });
 
     it('preserves link text and href', () => {

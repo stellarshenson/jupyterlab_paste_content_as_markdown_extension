@@ -22,14 +22,14 @@ Paste clipboard content as markdown into JupyterLab. Copy formatted text from a 
 - **Paste as Markdown context menu** - Right-click in a text editor or a notebook cell's input area to find "Paste as Markdown" directly below the regular paste
 - **HTML to markdown conversion** - Converts formatted HTML copied from web pages, emails, and documents into clean markdown using ATX headings, fenced code blocks, and standard list markers
 - **Rich text support** - Handles content copied from Word, Google Docs, Confluence, Notion, and other rich text editors that place HTML on the clipboard
-- **Preserves structure** - Maintains headings, lists, links, bold, italic, code blocks and tables during conversion, including tables copied from a spreadsheet, which carry no header row of their own. Markdown has no merged cell, so a `colspan` or `rowspan` keeps one column and its row is padded out. Every value survives, but cells beside or below a merged one can sit a column left of where the spreadsheet drew them
+- **Preserves structure** - Maintains headings, lists, links, bold, italic, strikethrough, task lists, code blocks and tables during conversion, including tables copied from a spreadsheet, which carry no header row of their own. Markdown has no merged cell, so a `colspan` or `rowspan` keeps one column and its row is padded out. Every value survives, but cells beside or below a merged one can sit a column left of where the spreadsheet drew them
 - **Discards what markdown cannot carry** - Stylesheets, scripts and document metadata are dropped rather than pasted as text, so a paste from Word does not arrive with its CSS attached
 - **Replaces the selection** - Behaves like the built-in paste: selected text is replaced, not written alongside
 - **Plain text fallback** - When the clipboard offers no HTML, or the HTML converts to nothing, the plain text content is pasted as-is
 
 ## How It Works
 
-Most applications place both plain text and HTML on the clipboard when you copy formatted content. This extension reads the HTML flavour via the browser Clipboard API, runs it through [Turndown](https://github.com/mixmark-io/turndown) with the GFM table plugin, and replaces the current selection with the result. If no HTML is found, it falls back to plain text.
+Most applications place both plain text and HTML on the clipboard when you copy formatted content. This extension reads the HTML flavour via the browser Clipboard API, runs it through [Turndown](https://github.com/mixmark-io/turndown) with the GFM plugins, and replaces the current selection with the result. If no HTML is found, it falls back to plain text.
 
 Images are kept when their source still resolves elsewhere - an `http(s):`, `data:` or protocol-relative URL. Word and Outlook reference images as `file:///` paths in a local temp folder, which resolve on no other machine, so those are dropped rather than pasted as links that cannot load.
 
