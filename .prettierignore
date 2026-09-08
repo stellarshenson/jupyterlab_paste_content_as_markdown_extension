@@ -6,3 +6,4 @@ node_modules
 jupyterlab_paste_content_as_markdown_extension
 eslint.config.mjs
 .venv
+.claude
