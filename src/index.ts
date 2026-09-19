@@ -121,10 +121,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         // Emptiness, not blankness: a clipboard holding spaces or a tab is
         // content the user copied deliberately, and indentation in particular
         // is worth pasting.
+        //
+        // Only the HTML path reaches here - a text result carries non-empty
+        // text by construction - so the clipboard was not empty, it just held
+        // nothing convertible. A Word figure is the everyday case: its only
+        // image points at a local temp file and is dropped. Saying the
+        // clipboard is empty would send the user to look in the wrong place.
         if (!markdown) {
           await showErrorMessage(
             COMMAND_LABEL,
-            clipboardErrorMessage({ kind: 'empty' })
+            'Nothing on the clipboard could be converted to markdown.'
           );
           return;
         }

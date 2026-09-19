@@ -7,3 +7,5 @@ jupyterlab_paste_content_as_markdown_extension
 eslint.config.mjs
 .venv
 .claude
+docs/acc-crit.md
+docs/defects.md

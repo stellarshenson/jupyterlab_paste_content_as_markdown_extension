@@ -347,4 +347,35 @@ test.describe('Paste as Markdown', () => {
     await expect(page.locator('.jp-Dialog')).toBeVisible();
     await expect(page.locator('.jp-Dialog')).toContainText('clipboard');
   });
+
+  test('keeps the formatting and the list of a Word paste', async ({
+    page
+  }) => {
+    // Word carries formatting in CSS on a <span> and ships no <ul> or <li> at
+    // all: each item is a paragraph whose style holds `mso-list`, with the
+    // bullet as literal text. Pasted untouched this arrives as unformatted
+    // paragraphs each opening with a stray glyph.
+    const listItem = (marker: string, text: string): string =>
+      `<p class=MsoListParagraph style='mso-list:l0 level1 lfo1'>` +
+      `<span style='font-family:Symbol'><span style='mso-list:Ignore'>${marker}` +
+      `<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;</span></span></span>` +
+      `${text}</p>`;
+
+    await writeHtmlToClipboard(
+      page,
+      "<html xmlns:o='urn:schemas-microsoft-com:office:office'><body>" +
+        "<p class=MsoNormal><span style='font-weight:bold'>Report</span>" +
+        '<o:p></o:p></p>' +
+        listItem('&middot;', 'First point') +
+        listItem('&middot;', 'Second point') +
+        '</body></html>'
+    );
+
+    await openTextFile(page);
+    await pasteAsMarkdown(page);
+
+    await expect
+      .poll(async () => (await currentSource(page)).trim())
+      .toBe('**Report**\n\n-   First point\n-   Second point');
+  });
 });

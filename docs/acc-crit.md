@@ -1,0 +1,129 @@
+# Acceptance Criteria - jupyterlab_paste_content_as_markdown_extension
+
+JupyterLab 4.x frontend extension adding a "Paste as Markdown" context-menu item. Clipboard `text/html` is converted by turndown with the GFM plugins and inserted through `editor.replaceSelection()`.
+
+## Authors
+
+- `@kj` Konrad Jelen
+
+## Rich text paste `RICH`
+
+Clipboard HTML from a word processor or rich-text editor, where formatting is carried by CSS rather than by semantic tags
+
+- [x] `ACC-RICH-1` **Bold expressed as CSS** - CRITICAL; a run whose style sets font-weight to bold, bolder or 500-900 converts to `**`
+  - evidence: jest 102 green on 2026-09-19; mutation-verified - the assertion fails when the pass it covers is neutralised
+  - test: convert `<span style='font-weight:bold'>x</span>`, assert `**x**`
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:38:00Z @kj closed: met by normaliseStyledRuns and normaliseWordLists in `src/turndown.ts`
+- [x] `ACC-RICH-2` **Italic expressed as CSS** - CRITICAL; a run whose style sets font-style to italic converts to `*`
+  - evidence: jest 102 green on 2026-09-19; mutation-verified - the assertion fails when the pass it covers is neutralised
+  - test: convert `<span style='font-style:italic'>x</span>`, assert `*x*`
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:38:00Z @kj closed: met by normaliseStyledRuns and normaliseWordLists in `src/turndown.ts`
+- [x] `ACC-RICH-3` **Strikethrough expressed as CSS** - HIGH; a run whose style sets text-decoration to line-through converts to `~~x~~`
+  - evidence: jest 112 green on 2026-09-19; mutation-verified
+  - mechanism: 2026-09-19T20:59:21Z @kj a rule added after service.use overrides the plugin's one tilde: JupyterLab's preview takes either form, but nbconvert and markdown-it-py render `~x~` as literal text, and a stray tilde on the line pairs with the delimiter
+  - mechanism: 2026-09-19T20:32:17Z @kj turndown-plugin-gfm's strikethrough rule emits one tilde; GFM accepts one or two, so no rule override is warranted
+  - test: convert `<span style='text-decoration:line-through'>x</span>`, assert `~~x~~`
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:32:17Z @kj amended text "a run whose style sets text-decoration to line-through converts to `~~`" -> "a run whose style sets text-decoration to line-through converts to a tilde-delimited strikethrough, the `~x~` form the GFM plugin emits and GFM accepts"
+  - log: 2026-09-19T20:32:17Z @kj edited test (replaced)
+  - log: 2026-09-19T20:38:00Z @kj closed: met by normaliseStyledRuns and normaliseWordLists in `src/turndown.ts`
+  - log: 2026-09-19T20:59:21Z @kj reopened: reopened: the one-tilde rationale was wrong; evidence retired: jest 102 green on 2026-09-19; mutation-verified - the assertion fails when the pass it covers is neutralised
+  - log: 2026-09-19T20:59:21Z @kj amended text "a run whose style sets text-decoration to line-through converts to a tilde-delimited strikethrough, the `~x~` form the GFM plugin emits and GFM accepts" -> "a run whose style sets text-decoration to line-through converts to `~~x~~`"
+  - log: 2026-09-19T20:59:21Z @kj edited test (replaced)
+  - log: 2026-09-19T20:59:22Z @kj closed: met in `src/turndown.ts`
+- [x] `ACC-RICH-4` **Word bulleted list** - CRITICAL; consecutive paragraphs carrying `mso-list` with a bullet glyph convert to one markdown bullet list, one item per paragraph
+  - evidence: jest 102 green on 2026-09-19; mutation-verified - the assertion fails when the pass it covers is neutralised
+  - test: convert two MsoListParagraph paragraphs whose ignored marker is a middle dot, assert two `-` items
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:38:00Z @kj closed: met by normaliseStyledRuns and normaliseWordLists in `src/turndown.ts`
+- [x] `ACC-RICH-5` **Word numbered list** - CRITICAL; consecutive `mso-list` paragraphs whose marker is a number or letter followed by a dot or bracket convert to one markdown ordered list
+  - evidence: jest 102 green on 2026-09-19; mutation-verified - the assertion fails when the pass it covers is neutralised
+  - test: convert two MsoListParagraph paragraphs marked `1.` and `2.`, assert an ordered list
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:38:00Z @kj closed: met by normaliseStyledRuns and normaliseWordLists in `src/turndown.ts`
+- [x] `ACC-RICH-6` **List glyph is not pasted** - HIGH; the marker Word ships inside a `mso-list:Ignore` span is removed, so no middle dot, `o`, section sign or literal number reaches the document
+  - evidence: jest 102 green on 2026-09-19; mutation-verified - the assertion fails when the pass it covers is neutralised
+  - test: convert a Word bullet paragraph, assert the output contains no middle dot
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:38:00Z @kj closed: met by normaliseStyledRuns and normaliseWordLists in `src/turndown.ts`
+- [x] `ACC-RICH-7` **Word list levels nest** - MEDIUM; a paragraph at `level2` becomes an item of a list nested inside the preceding `level1` item
+  - evidence: jest 102 green on 2026-09-19; mutation-verified - the assertion fails when the pass it covers is neutralised
+  - test: convert level1, level2, level1 paragraphs, assert the middle item is indented under the first
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:38:00Z @kj closed: met by normaliseStyledRuns and normaliseWordLists in `src/turndown.ts`
+- [x] `ACC-RICH-8` **Office paragraph markers are dropped** - LOW; Word's empty `<o:p>` elements contribute no text and no blank line
+  - mechanism: 2026-09-19T20:38:00Z @kj no normalisation pass; one was written and removed as dead when a mutation showed the assertion passes without it
+  - evidence: jest 102 green on 2026-09-19; held by turndown's own blank-node test, no pass of ours involved
+  - test: convert `<p>x<o:p></o:p></p>`, assert the output is exactly `x`
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:38:00Z @kj closed: met without code: <o:p> carries a non-breaking space at most, which turndown already discards
+- [x] `ACC-RICH-9` **Edge: CSS bold inside a bold tag** - HIGH; a CSS-bold run nested in a `<b>` or `<strong>` produces one pair of `**`, never two
+  - evidence: jest 102 green on 2026-09-19; mutation-verified - the assertion fails when the pass it covers is neutralised
+  - test: convert `<b><span style='font-weight:bold'>x</span></b>`, assert `**x**`
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:38:00Z @kj closed: met by normaliseStyledRuns and normaliseWordLists in `src/turndown.ts`
+- [x] `ACC-RICH-10` **Edge: CSS bold inside a heading** - MEDIUM; a CSS-bold run inside h1 to h6 adds no `**` to the heading line, which is already bold in markdown
+  - evidence: jest 102 green on 2026-09-19; mutation-verified - the assertion fails when the pass it covers is neutralised
+  - test: convert `<h1><span style='font-weight:bold'>x</span></h1>`, assert `# x`
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:38:00Z @kj closed: met by normaliseStyledRuns and normaliseWordLists in `src/turndown.ts`
+- [x] `ACC-RICH-11` **Edge: font-weight normal is not bold** - HIGH; Google Docs wraps its whole payload in `<b style=font-weight:normal>`; neither that wrapper nor a `font-weight:400` run produces `**`
+  - evidence: jest 102 green on 2026-09-19; mutation-verified - the assertion fails when the pass it covers is neutralised
+  - test: convert the Google Docs wrapper around plain text, assert no asterisk in the output
+  - test-tags: UNIT
+  - log: 2026-09-19T20:30:09Z @kj added
+  - log: 2026-09-19T20:38:00Z @kj closed: met by normaliseStyledRuns and normaliseWordLists in `src/turndown.ts`
+- [x] `ACC-RICH-12` **Adjacent runs are joined** - HIGH; two neighbouring runs carrying the same formatting emit one pair of delimiters, not two; whitespace between them keeps them apart
+  - evidence: jest 112 green on 2026-09-19; mutation-verified
+  - test: convert two abutting font-weight:700 spans, assert one pair of asterisks
+  - test-tags: UNIT
+  - log: 2026-09-19T20:59:21Z @kj added
+  - log: 2026-09-19T20:59:22Z @kj closed: met in `src/turndown.ts`
+- [x] `ACC-RICH-13` **Run around block content** - MEDIUM; a styled run wrapping whole paragraphs emits no delimiters, which markdown would otherwise put on lines of their own
+  - evidence: jest 112 green on 2026-09-19; mutation-verified
+  - test: convert a bold span around two paragraphs, assert no asterisk
+  - test-tags: UNIT
+  - log: 2026-09-19T20:59:21Z @kj added
+  - log: 2026-09-19T20:59:22Z @kj closed: met in `src/turndown.ts`
+- [x] `ACC-RICH-14` **Run inside inline code** - MEDIUM; a styled run inside `<code>` or `<pre>` adds no markers to the code text
+  - evidence: jest 112 green on 2026-09-19; mutation-verified
+  - test: convert a bold span inside <code>, assert the backticks hold no asterisk
+  - test-tags: UNIT
+  - log: 2026-09-19T20:59:22Z @kj added
+  - log: 2026-09-19T20:59:22Z @kj closed: met in `src/turndown.ts`
+- [x] `ACC-RICH-15` **Run carrying two formats** - MEDIUM; one run whose style sets two of bold, italic and line-through gets both tags, nested
+  - evidence: jest 112 green on 2026-09-19; mutation-verified
+  - test: convert a span setting font-weight:bold and font-style:italic, assert `***x***`
+  - test-tags: UNIT
+  - log: 2026-09-19T20:59:22Z @kj added
+  - log: 2026-09-19T20:59:22Z @kj closed: met in `src/turndown.ts`
+- [x] `ACC-RICH-16` **Ordered list starts where Word did** - HIGH; an ordered list opens at the number its first marker carries, so a procedure copied from step 5 does not read as step 1
+  - evidence: jest 112 green on 2026-09-19; mutation-verified
+  - test: convert two list paragraphs marked `5.` and `6.`, assert the output starts at 5
+  - test-tags: UNIT
+  - log: 2026-09-19T20:59:22Z @kj added
+  - log: 2026-09-19T20:59:22Z @kj closed: met in `src/turndown.ts`
+- [x] `ACC-RICH-17` **Marker-less list paragraph** - MEDIUM; a list paragraph with no marker span stays in the list already open at its level instead of starting a bullet list
+  - evidence: jest 112 green on 2026-09-19; mutation-verified
+  - test: convert a numbered item, a bare mso-list paragraph and a third item, assert one ordered list of three
+  - test-tags: UNIT
+  - log: 2026-09-19T20:59:22Z @kj added
+  - log: 2026-09-19T20:59:22Z @kj closed: met in `src/turndown.ts`
+- [x] `ACC-RICH-18` **Two Word lists keep separate counts** - MEDIUM; adjacent list paragraphs carrying different `mso-list` ids are two lists, since Word restarts the numbering of the second
+  - evidence: jest 112 green on 2026-09-19; mutation-verified
+  - test: convert two items of list l0 then one of l9, assert the second list restarts at 1
+  - test-tags: UNIT
+  - log: 2026-09-19T20:59:22Z @kj added
+  - log: 2026-09-19T20:59:22Z @kj closed: met in `src/turndown.ts`

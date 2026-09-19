@@ -81,12 +81,20 @@ export async function readClipboard(): Promise<ClipboardResult> {
           // granted: the HTML can convert to nothing, and a second read is
           // both a second permission prompt and a second chance for the
           // clipboard to have changed underneath. Caught on its own, so a
-          // failing optional flavour cannot discard the HTML already read.
+          // failing optional flavour cannot discard the HTML already read -
+          // and reported, because the user sees only "No content available"
+          // when the HTML then converts to nothing.
           const text = item.types.includes('text/plain')
             ? await item
                 .getType('text/plain')
                 .then(blob => blob.text())
-                .catch(() => undefined)
+                .catch(err => {
+                  console.warn(
+                    `${LOG_PREFIX} Clipboard text/plain read failed:`,
+                    err
+                  );
+                  return undefined;
+                })
             : undefined;
           return { kind: 'html', html, text };
         }

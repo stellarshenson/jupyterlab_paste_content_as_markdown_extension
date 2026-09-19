@@ -38,8 +38,72 @@ const BLOCK_CONTENT =
  * A `font-weight` that means "not bold". Google Docs wraps everything it
  * copies in `<b style="font-weight:normal" id="docs-internal-guid-...">`,
  * which turndown faithfully converts to a pair of stray `**`.
+ *
+ * Anchored: unanchored it also matched inside Word's own
+ * `mso-bidi-font-weight:normal`, which sits on the `<b>` carrying the bold,
+ * so every bold run in a Word paste was unwrapped and lost.
  */
-const UNBOLD = /font-weight\s*:\s*(?:normal|400)\b/i;
+const UNBOLD = /(?:^|;)\s*font-weight\s*:\s*(?:normal|400)\b/i;
+
+/**
+ * Formatting a rich-text editor expresses as CSS instead of as a tag. Word and
+ * Google Docs both emit runs as a bare `<span>` and carry the formatting in
+ * its style, which turndown has no rule for and drops without a trace - the
+ * whole reason a Word paste arrives as unformatted text.
+ *
+ * Each pattern is anchored on a semicolon or the start of the attribute, so
+ * Word's own `mso-bidi-font-weight:normal` cannot match `font-weight`.
+ */
+const CSS_BOLD = /(?:^|;)\s*font-weight\s*:\s*(?:bold(?:er)?|[5-9]00)\b/i;
+const CSS_ITALIC = /(?:^|;)\s*font-style\s*:\s*italic\b/i;
+const CSS_STRIKE = /(?:^|;)\s*text-decoration[\w-]*\s*:[^;]*\bline-through\b/i;
+
+/**
+ * The tag each CSS pattern stands for, and the ancestors that already say the
+ * same thing. A run inside them is skipped: nesting `<strong>` in `<strong>`
+ * emits a second pair of `**`, and a heading line is bold already.
+ */
+const CSS_FORMATTING: ReadonlyArray<readonly [RegExp, string, string]> = [
+  [CSS_BOLD, 'strong', 'strong,b,h1,h2,h3,h4,h5,h6,code,pre'],
+  [CSS_ITALIC, 'em', 'em,i,code,pre'],
+  [CSS_STRIKE, 'del', 'del,s,strike,code,pre']
+];
+
+/**
+ * The one tag per kind of formatting, so the two spellings HTML offers for
+ * each compare equal when neighbouring runs are joined below.
+ */
+const FORMATTING_TAG: Readonly<Record<string, string>> = {
+  b: 'strong',
+  strong: 'strong',
+  i: 'em',
+  em: 'em',
+  s: 'del',
+  strike: 'del',
+  del: 'del'
+};
+
+/**
+ * Word's list paragraphs. There is no `<ul>` or `<li>` anywhere in a Word
+ * paste: every item is a paragraph whose style carries `mso-list: l0 level1
+ * lfo1`, and the bullet or number is literal text in a nested span.
+ */
+const MSO_LIST_LEVEL = /(?:^|;)\s*mso-list\s*:[^;]*\blevel(\d+)/i;
+const MSO_LIST_MARKER = /mso-list\s*:\s*ignore/i;
+
+/**
+ * A marker that counts rather than bullets - `1.`, `a)`, `iv.`. Word's bullet
+ * glyphs are a middle dot, a lowercase `o` and a section sign, none of which
+ * carry the trailing dot or bracket this requires.
+ */
+const ORDERED_MARKER = /^\(?(?:\d+|[a-z]+)\s*[.)]/i;
+
+/**
+ * The list a paragraph belongs to. Two numbered lists written back to back
+ * carry different ids and Word restarts the second; a nested level keeps its
+ * parent's id, so this never splits a list from its own sub-list.
+ */
+const MSO_LIST_ID = /(?:^|;)\s*mso-list\s*:\s*(l\d+)/i;
 
 const turndown = createTurndownService();
 
@@ -61,6 +125,18 @@ function createTurndownService(): TurndownService {
   // for strikethrough or for a task-list checkbox either, so both are dropped
   // without a trace unless the plugin supplies them.
   service.use([tables, strikethrough, taskListItems]);
+
+  // The plugin emits one tilde. JupyterLab's own preview takes it, but
+  // nbconvert and markdown-it-py - which File > Save and Export Notebook As
+  // runs - render `~x~` as literal text, and a stray `~` elsewhere on the
+  // line pairs with the delimiter and swallows everything between. Two are
+  // unambiguous in all three.
+  service.addRule('strikethrough', {
+    // A predicate, not a tag list: `strike` is deprecated and absent from
+    // TypeScript's tag-name map, which the array form is typed against.
+    filter: node => ['DEL', 'S', 'STRIKE'].includes(node.nodeName),
+    replacement: (content: string) => `~~${content}~~`
+  });
 
   // Table cells, overriding the GFM plugin's own rule. Added after `use`, so
   // it takes precedence. A literal pipe or a line break inside a cell would
@@ -136,6 +212,200 @@ function normaliseInlineMarkup(root: Document): void {
       link.remove();
     }
   });
+}
+
+/**
+ * Give CSS-expressed formatting the tag turndown needs to see.
+ *
+ * The run is replaced by the tag rather than wrapped in it, so two runs an
+ * editor split for a reason markdown cannot express end up as siblings that
+ * `joinAdjacentFormatting` can reach. Document order matters: an outer run is
+ * replaced first, which is what puts a nested run inside the new tag and
+ * makes the redundancy test see it.
+ */
+function normaliseStyledRuns(root: Document): void {
+  root.querySelectorAll('span[style]').forEach(run => {
+    const style = run.getAttribute('style') ?? '';
+    // Markdown has no emphasis spanning whole paragraphs, so a run around
+    // block content emits its delimiters on lines of their own, where they
+    // render as literal asterisks. The same test guards a link above.
+    if (run.querySelector(BLOCK_CONTENT)) {
+      return;
+    }
+
+    const tags = CSS_FORMATTING.filter(
+      ([pattern, , redundantWithin]) =>
+        pattern.test(style) && !run.closest(redundantWithin)
+    );
+    if (!tags.length) {
+      return;
+    }
+
+    const outermost = root.createElement(tags[0][1]);
+    let innermost = outermost;
+    tags.slice(1).forEach(([, tagName]) => {
+      const nested = root.createElement(tagName);
+      innermost.appendChild(nested);
+      innermost = nested;
+    });
+    while (run.firstChild) {
+      innermost.appendChild(run.firstChild);
+    }
+    run.replaceWith(outermost);
+  });
+}
+
+/**
+ * Join neighbouring elements carrying the same formatting.
+ *
+ * Google Docs opens a new run at every style change - colour, size,
+ * background - and Word splits on language and proofing attributes, so one
+ * bold word arrives as two runs. Delimited separately they emit
+ * `**Warn****ing**`, and the four asterisks render literally inside the word.
+ *
+ * Only a direct neighbour is joined: whitespace between two runs is a word
+ * boundary, and `**Hello** **world**` is already right.
+ */
+function joinAdjacentFormatting(root: Document): void {
+  root
+    .querySelectorAll(Object.keys(FORMATTING_TAG).join(','))
+    .forEach(element => {
+      const previous = element.previousSibling;
+      if (
+        !previous ||
+        previous.nodeType !== previous.ELEMENT_NODE ||
+        FORMATTING_TAG[(previous as Element).localName] !==
+          FORMATTING_TAG[element.localName]
+      ) {
+        return;
+      }
+      while (element.firstChild) {
+        previous.appendChild(element.firstChild);
+      }
+      element.remove();
+    });
+}
+
+/**
+ * Remove the glyph Word drew for a list item and return its text.
+ *
+ * The glyph is the only thing saying whether the list counts or bullets - the
+ * paragraph's style records the level and the list id, never the type - so it
+ * is read on the way out rather than simply deleted.
+ */
+function takeListMarker(paragraph: Element): string {
+  const marker = Array.from(paragraph.querySelectorAll('span[style]')).find(
+    span => MSO_LIST_MARKER.test(span.getAttribute('style') ?? '')
+  );
+  const text = marker?.textContent ?? '';
+  marker?.remove();
+  return text.trim();
+}
+
+/**
+ * Turn one run of consecutive Word list paragraphs into real lists.
+ *
+ * The stack holds the list open at each level. A deeper paragraph opens a list
+ * inside the current item, a shallower one closes back to its own level, and a
+ * marker that changes type at the same level starts a sibling list - Word
+ * writes a bulleted and a numbered list as adjacent paragraphs with nothing
+ * between them to separate them.
+ */
+function buildWordList(root: Document, paragraphs: Element[]): void {
+  const stack: { level: number; list: Element }[] = [];
+
+  paragraphs.forEach(paragraph => {
+    const level = Number(
+      MSO_LIST_LEVEL.exec(paragraph.getAttribute('style') ?? '')?.[1]
+    );
+    const marker = takeListMarker(paragraph);
+
+    while (stack.length && stack[stack.length - 1].level > level) {
+      stack.pop();
+    }
+
+    let open = stack[stack.length - 1];
+    // A paragraph with no marker carries no type of its own - a selection
+    // begun inside the first item is that shape - so it stays in the list
+    // already open rather than defaulting to a bullet and cutting a numbered
+    // run in half.
+    const tagName = marker
+      ? ORDERED_MARKER.test(marker)
+        ? 'ol'
+        : 'ul'
+      : open?.level === level
+        ? open.list.localName
+        : 'ul';
+
+    if (open && open.level === level && open.list.localName !== tagName) {
+      stack.pop();
+      open = stack[stack.length - 1];
+    }
+
+    if (!open || open.level < level) {
+      const list = root.createElement(tagName);
+      // Word restarts its own numbering and a selection can begin mid-list;
+      // without this a procedure copied from step 5 reads as step 1.
+      const start = Number(/^\(?(\d+)/.exec(marker)?.[1]);
+      if (start > 1) {
+        list.setAttribute('start', String(start));
+      }
+      // Inside the item it belongs to when there is one; otherwise where the
+      // paragraph stands, which is still in the document at this point.
+      const parentItem = open?.list.lastElementChild;
+      if (parentItem) {
+        parentItem.appendChild(list);
+      } else {
+        paragraph.before(list);
+      }
+      open = { level, list };
+      stack.push(open);
+    }
+
+    const item = root.createElement('li');
+    while (paragraph.firstChild) {
+      item.appendChild(paragraph.firstChild);
+    }
+    open.list.appendChild(item);
+    paragraph.remove();
+  });
+}
+
+/**
+ * Rebuild every Word list in the document.
+ *
+ * Paragraphs are grouped into runs of immediate siblings: two lists separated
+ * by a paragraph of prose are two lists, and joining them would move the prose
+ * out of its place in the document.
+ */
+function normaliseWordLists(root: Document): void {
+  const paragraphs = Array.from(root.querySelectorAll('p[style]')).filter(
+    paragraph => MSO_LIST_LEVEL.test(paragraph.getAttribute('style') ?? '')
+  );
+
+  const listId = (paragraph: Element): string =>
+    MSO_LIST_ID.exec(paragraph.getAttribute('style') ?? '')?.[1] ?? '';
+
+  let run: Element[] = [];
+  const flush = (): void => {
+    if (run.length) {
+      buildWordList(root, run);
+      run = [];
+    }
+  };
+
+  paragraphs.forEach(paragraph => {
+    const previous = run[run.length - 1];
+    if (
+      previous &&
+      (previous.nextElementSibling !== paragraph ||
+        listId(previous) !== listId(paragraph))
+    ) {
+      flush();
+    }
+    run.push(paragraph);
+  });
+  flush();
 }
 
 /**
@@ -348,6 +618,9 @@ export function convertHtmlToMarkdown(html: string): string {
   try {
     const document = new DOMParser().parseFromString(html, 'text/html');
     normaliseInlineMarkup(document);
+    normaliseStyledRuns(document);
+    joinAdjacentFormatting(document);
+    normaliseWordLists(document);
     normaliseTables(document);
     return turndown.turndown(document.body);
   } catch (err) {

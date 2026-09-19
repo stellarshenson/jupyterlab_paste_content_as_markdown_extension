@@ -151,6 +151,34 @@ describe('clipboard', () => {
       });
     });
 
+    it('reports the failed plain-text read rather than swallowing it', () => {
+      // DEF-CLIP-1: the user sees only "No content available on the
+      // clipboard" once the HTML converts to nothing, so the cause has to
+      // reach the console.
+      const warn = jest.mocked(console.warn);
+      stubClipboard({
+        read: async () => [
+          {
+            types: ['text/html', 'text/plain'],
+            getType: async (type: string) => {
+              if (type === 'text/plain') {
+                throw new DOMException('denied', 'NotAllowedError');
+              }
+              return { text: async () => '<p>x</p>' };
+            }
+          }
+        ],
+        readText: async () => 'x'
+      });
+
+      return readClipboard().then(() => {
+        expect(warn).toHaveBeenCalledWith(
+          '[paste-as-markdown] Clipboard text/plain read failed:',
+          expect.any(DOMException)
+        );
+      });
+    });
+
     it('falls back to text when no HTML flavour is offered', async () => {
       stubClipboard({
         read: async () => [clipboardItem('text/plain', 'x')],

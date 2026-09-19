@@ -573,7 +573,7 @@ describe('convertHtmlToMarkdown', () => {
     it('keeps strikethrough and checkbox state', () => {
       // Both are GFM constructs the installed plugin has rules for; without
       // them the text reads as unstruck and every task looks unfinished.
-      expect(convert('<p><del>gone</del> stays</p>')).toBe('~gone~ stays');
+      expect(convert('<p><del>gone</del> stays</p>')).toBe('~~gone~~ stays');
       expect(
         convert(
           '<ul><li><input type="checkbox" checked>done</li>' +
@@ -603,6 +603,327 @@ describe('convertHtmlToMarkdown', () => {
       expect(
         convert('<html><head><style>p{margin:0}</style></head></html>')
       ).toBe('');
+    });
+  });
+
+  describe('formatting carried by CSS instead of by a tag', () => {
+    // Word and Google Docs both emit runs as a bare <span> and put the
+    // formatting in its style. Turndown has no rule for a span, so every one
+    // of these pasted as unformatted text before the runs were given tags.
+
+    it('converts a CSS-bold run to bold', () => {
+      expect(convert("<p><span style='font-weight:bold'>x</span></p>")).toBe(
+        '**x**'
+      );
+    });
+
+    it('converts a numeric CSS weight to bold, as Google Docs emits it', () => {
+      expect(convert('<p><span style="font-weight:700;">x</span></p>')).toBe(
+        '**x**'
+      );
+    });
+
+    it('converts a CSS-italic run to italic', () => {
+      expect(convert("<p><span style='font-style:italic'>x</span></p>")).toBe(
+        '*x*'
+      );
+    });
+
+    it('converts a CSS line-through run to strikethrough', () => {
+      // Two tildes: nbconvert and markdown-it-py, which the notebook's own
+      // export runs, render the one-tilde form as literal text.
+      expect(
+        convert('<p><span style="text-decoration:line-through;">x</span></p>')
+      ).toBe('~~x~~');
+    });
+
+    it('converts the text-decoration-line longhand too', () => {
+      expect(
+        convert(
+          '<p><span style="text-decoration-line:line-through">x</span></p>'
+        )
+      ).toBe('~~x~~');
+    });
+
+    it("reads Word's mso-bidi-font-weight as neither bold nor unbold", () => {
+      // The substring "font-weight:normal" sits inside the Word-only property
+      // mso-bidi-font-weight, and an unanchored test would read it as a
+      // weight of its own.
+      expect(
+        convert(
+          "<p><span style='mso-bidi-font-weight:normal;font-weight:bold'>x" +
+            '</span></p>'
+        )
+      ).toBe('**x**');
+    });
+
+    it('leaves a run that sets no formatting alone', () => {
+      expect(convert("<p><span style='font-size:11.0pt'>x</span></p>")).toBe(
+        'x'
+      );
+    });
+
+    it('does not double the markers of a CSS-bold run inside a <b>', () => {
+      expect(
+        convert("<p><b><span style='font-weight:bold'>x</span></b></p>")
+      ).toBe('**x**');
+    });
+
+    it('does not double the markers of nested CSS-bold runs', () => {
+      expect(
+        convert(
+          "<p><span style='font-weight:bold'>" +
+            "<span style='font-weight:bold'>x</span></span></p>"
+        )
+      ).toBe('**x**');
+    });
+
+    it('adds no bold inside a heading, which is bold already', () => {
+      expect(convert("<h1><span style='font-weight:bold'>x</span></h1>")).toBe(
+        '# x'
+      );
+    });
+
+    it('treats a normal weight as no formatting at all', () => {
+      expect(
+        convert(
+          '<b style="font-weight:normal" id="docs-internal-guid-x">' +
+            '<p><span style="font-weight:400;">x</span></p></b>'
+        )
+      ).toBe('x');
+    });
+
+    it('gives a run carrying two formats both tags', () => {
+      expect(
+        convert(
+          "<p><span style='font-weight:bold;font-style:italic'>x</span></p>"
+        )
+      ).toBe('***x***');
+    });
+
+    it('joins two runs the editor split inside one word', () => {
+      // Google Docs opens a new run at every style change, so a coloured
+      // fragment inside a bold word arrives as two runs. Delimited
+      // separately they emit **Warn****ing**, four literal asterisks.
+      expect(
+        convert(
+          '<p><span style="font-weight:700;color:#ff0000">Warn</span>' +
+            '<span style="font-weight:700">ing</span>: check</p>'
+        )
+      ).toBe('**Warning**: check');
+    });
+
+    it('joins a CSS run to the tag beside it', () => {
+      expect(
+        convert("<p><b>a</b><span style='font-weight:bold'>b</span></p>")
+      ).toBe('**ab**');
+    });
+
+    it('keeps two runs apart when whitespace separates them', () => {
+      expect(
+        convert(
+          "<p><span style='font-weight:bold'>Hello</span> " +
+            "<span style='font-weight:bold'>world</span></p>"
+        )
+      ).toBe('**Hello** **world**');
+    });
+
+    it('joins italic and strikethrough neighbours too', () => {
+      expect(
+        convert(
+          "<p><span style='font-style:italic'>a</span>" +
+            "<span style='font-style:italic'>b</span></p>"
+        )
+      ).toBe('*ab*');
+      expect(
+        convert(
+          "<p><span style='text-decoration:line-through'>a</span>" +
+            "<span style='text-decoration:line-through'>b</span></p>"
+        )
+      ).toBe('~~ab~~');
+    });
+
+    it('emits no delimiter for a run wrapping whole paragraphs', () => {
+      // Markdown has no emphasis across blocks; turndown puts the ** on
+      // lines of their own, where they render as literal asterisks.
+      expect(
+        convert("<span style='font-weight:bold'><p>one</p><p>two</p></span>")
+      ).toBe('one\n\ntwo');
+    });
+
+    it('adds no markers inside inline code', () => {
+      expect(
+        convert(
+          '<p>call <code><span style="font-weight:bold">fit()</span></code>' +
+            ' first</p>'
+        )
+      ).toBe('call `fit()` first');
+    });
+
+    it('keeps the bold Word applies with its own Bold button', () => {
+      // DEF-HTML-2: Word writes `mso-bidi-font-weight:normal` on the <b>
+      // itself, and the unanchored UNBOLD pattern matched that substring and
+      // unwrapped the tag carrying the bold.
+      expect(
+        convert(
+          "<p class=MsoNormal><b style='mso-bidi-font-weight:normal'>" +
+            "<span style='font-size:11.0pt'>Bold</span></b> plain</p>"
+        )
+      ).toBe('**Bold** plain');
+    });
+
+    it('still unwraps the non-bold <b> Google Docs opens with', () => {
+      expect(
+        convert(
+          '<b style="font-weight:normal" id="docs-internal-guid-x">' +
+            '<p>Hello</p></b>'
+        )
+      ).toBe('Hello');
+    });
+
+    it('carries all three kinds of run through one Google Docs paste', () => {
+      const markdown = convert(
+        '<meta charset="utf-8">' +
+          '<b style="font-weight:normal" id="docs-internal-guid-x">' +
+          '<p dir="ltr"><span style="font-weight:700;">bold</span> ' +
+          '<span style="font-style:italic;">italic</span> ' +
+          '<span style="text-decoration:line-through;">struck</span></p></b>'
+      );
+
+      expect(markdown).toBe('**bold** *italic* ~~struck~~');
+    });
+  });
+
+  describe('Word lists', () => {
+    // Word ships no <ul>, <ol> or <li> at all: each item is a paragraph
+    // carrying mso-list in its style, and the bullet or number is literal
+    // text in a nested span. Converted untouched, a list arrives as a run of
+    // paragraphs each opening with a stray glyph.
+    const item = (level: number, marker: string, text: string): string =>
+      `<p class=MsoListParagraph style='text-indent:-.25in;mso-list:l0 level${level} lfo1'>` +
+      `<span style='font-family:Symbol'><span style='mso-list:Ignore'>${marker}` +
+      `<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;</span></span></span>` +
+      `${text}</p>`;
+
+    it('rebuilds a bulleted list', () => {
+      expect(
+        convert(item(1, '&middot;', 'First') + item(1, '&middot;', 'Second'))
+      ).toBe('-   First\n-   Second');
+    });
+
+    it('rebuilds a numbered list', () => {
+      expect(convert(item(1, '1.', 'First') + item(1, '2.', 'Second'))).toBe(
+        '1.  First\n2.  Second'
+      );
+    });
+
+    it('reads a bracketed marker as numbering too', () => {
+      expect(convert(item(1, 'a)', 'First') + item(1, 'b)', 'Second'))).toBe(
+        '1.  First\n2.  Second'
+      );
+    });
+
+    it('pastes no bullet glyph as text', () => {
+      // ACC-RICH-6. The shape assertions live in the two tests above; this
+      // one exists so the criterion keeps a test that names the glyph.
+      expect(convert(item(1, '&middot;', 'First'))).not.toContain('\u00b7');
+    });
+
+    it('nests a deeper level inside the item above it', () => {
+      const markdown = convert(
+        item(1, '&middot;', 'Top') +
+          item(2, 'o', 'Nested') +
+          item(1, '&middot;', 'Back')
+      );
+
+      expect(markdown).toBe('-   Top\n    -   Nested\n-   Back');
+    });
+
+    it('closes two levels at once when the list returns to the top', () => {
+      const markdown = convert(
+        item(1, '&middot;', 'Top') +
+          item(2, 'o', 'Two') +
+          item(3, '&sect;', 'Three') +
+          item(1, '&middot;', 'Back')
+      );
+
+      expect(markdown).toBe(
+        '-   Top\n    -   Two\n        -   Three\n-   Back'
+      );
+    });
+
+    it('splits a bulleted and a numbered list that sit side by side', () => {
+      // Word writes them as adjacent paragraphs with nothing between them.
+      const markdown = convert(
+        item(1, '&middot;', 'Bullet') + item(1, '1.', 'Number')
+      );
+
+      expect(markdown).toBe('-   Bullet\n\n1.  Number');
+    });
+
+    it('keeps two lists separated by prose apart', () => {
+      const markdown = convert(
+        item(1, '&middot;', 'First') +
+          '<p>Prose</p>' +
+          item(1, '&middot;', 'Second')
+      );
+
+      expect(markdown).toBe('-   First\n\nProse\n\n-   Second');
+    });
+
+    it('keeps the formatting of a run inside a list item', () => {
+      expect(
+        convert(
+          item(1, '&middot;', "<span style='font-weight:bold'>Bold item</span>")
+        )
+      ).toBe('-   **Bold item**');
+    });
+
+    it('starts an ordered list at the number Word showed', () => {
+      expect(convert(item(1, '5.', 'Five') + item(1, '6.', 'Six'))).toBe(
+        '5.  Five\n6.  Six'
+      );
+    });
+
+    it('reads a parenthesised number as numbering, not as a bullet', () => {
+      expect(convert(item(1, '(1)', 'First') + item(1, '(2)', 'Second'))).toBe(
+        '1.  First\n2.  Second'
+      );
+    });
+
+    it('keeps a marker-less paragraph in the list already open', () => {
+      // A selection begun inside the first item carries no marker span.
+      const bare =
+        "<p class=MsoListParagraph style='mso-list:l0 level1 lfo1'>Bare</p>";
+
+      expect(
+        convert(item(1, '1.', 'First') + bare + item(1, '3.', 'Third'))
+      ).toBe('1.  First\n2.  Bare\n3.  Third');
+    });
+
+    it('restarts the count when Word starts a second list', () => {
+      // Two numbered lists back to back carry different mso-list ids and
+      // Word restarts the second; joined they would read as one count.
+      const second = (marker: string, text: string): string =>
+        "<p class=MsoListParagraph style='mso-list:l9 level1 lfo2'>" +
+        `<span style='mso-list:Ignore'>${marker}</span>${text}</p>`;
+
+      expect(
+        convert(
+          item(1, '1.', 'A one') +
+            item(1, '2.', 'A two') +
+            second('1.', 'B one')
+        )
+      ).toBe('1.  A one\n2.  A two\n\n1.  B one');
+    });
+
+    it('emits nothing for the <o:p> markers Word ends paragraphs with', () => {
+      // ACC-RICH-8. No pass removes these: <o:p> holds a non-breaking space
+      // at most, which turndown's own blank test already discards, so the
+      // assertion is here to catch a change to that, not to cover our code.
+      expect(
+        convert('<p>a<o:p></o:p></p><p><o:p>&nbsp;</o:p></p><p>b</p>')
+      ).toBe('a\n\nb');
     });
   });
 });
