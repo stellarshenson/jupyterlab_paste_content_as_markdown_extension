@@ -2,6 +2,14 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.0.10] - 2026-09-20
+
+### Changed
+
+- Republished from the same source as 1.0.9, with no change to the extension. The 1.0.9 release commit has since been verified by CI - build, isolated install, link check and the 14 integration tests all green against a wheel built from the published source
+
+<!-- <END NEW CHANGELOG ENTRY> -->
+
 ## [1.0.9] - 2026-09-20
 
 ### Added
@@ -23,8 +31,6 @@
 - Two neighbouring runs carrying the same formatting emitted two pairs of delimiters, so a bold word Google Docs split at a colour change pasted as `**Warn****ing**`
 - A styled run wrapping whole paragraphs emitted its delimiters on lines of their own, where they render as literal asterisks
 - A styled run inside inline code put its markers into the code text
-
-<!-- <END NEW CHANGELOG ENTRY> -->
 
 ## [1.0.8] - 2026-09-08
 
