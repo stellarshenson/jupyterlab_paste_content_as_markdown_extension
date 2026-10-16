@@ -140,6 +140,6 @@
         }
     },
     "allowScripts": {
-        "@fortawesome/fontawesome-free@5.15.4": true
+        "@fortawesome/fontawesome-free": true
     }
 }
