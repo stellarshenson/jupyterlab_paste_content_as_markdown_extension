@@ -12,14 +12,17 @@ import { showErrorMessage } from '@jupyterlab/apputils';
 import type { CodeEditor } from '@jupyterlab/codeeditor';
 import { IEditorTracker } from '@jupyterlab/fileeditor';
 import { INotebookTracker } from '@jupyterlab/notebook';
+import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { pasteIcon } from '@jupyterlab/ui-components';
 import { clipboardErrorMessage, readClipboard } from './clipboard';
-import { convertHtmlToMarkdown } from './turndown';
 
 const PLUGIN_ID = 'jupyterlab_paste_content_as_markdown_extension:plugin';
 const COMMAND_ID = 'paste-as-markdown:paste';
 
 const COMMAND_LABEL = 'Paste as Markdown';
+
+/** The description of the arguments of a command that takes none. */
+const NO_ARGS = { args: { type: 'object', properties: {} } };
 
 /**
  * The editor a paste would land in, or null when the current widget is
@@ -71,20 +74,26 @@ const plugin: JupyterFrontEndPlugin<void> = {
   description:
     'JupyterLab extension to paste clipboard content (HTML, formatted text) as markdown into text editors and notebook cells',
   autoStart: true,
-  optional: [IEditorTracker, INotebookTracker],
+  optional: [IEditorTracker, INotebookTracker, ITranslator],
   activate: (
     app: JupyterFrontEnd,
     editorTracker: IEditorTracker | null,
-    notebookTracker: INotebookTracker | null
+    notebookTracker: INotebookTracker | null,
+    translator: ITranslator | null
   ) => {
     console.log(
       '[paste-as-markdown] JupyterLab extension jupyterlab_paste_content_as_markdown_extension is activated!'
     );
 
+    const trans = (translator ?? nullTranslator).load(
+      'jupyterlab_paste_content_as_markdown_extension'
+    );
+
     app.commands.addCommand(COMMAND_ID, {
       label: COMMAND_LABEL,
       icon: pasteIcon,
-      caption: 'Paste clipboard content converted to markdown',
+      caption: trans.__('Paste clipboard content converted to markdown'),
+      describedBy: NO_ARGS,
       isEnabled: () =>
         canPasteInto(resolveEditor(app, editorTracker, notebookTracker)),
       execute: async () => {
@@ -105,10 +114,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
           return;
         }
 
-        let markdown =
-          clipboard.kind === 'html'
-            ? convertHtmlToMarkdown(clipboard.html)
-            : clipboard.text;
+        // Loaded on the first HTML paste rather than at activation: the
+        // converter and its GFM plugin are the bulk of this extension, and a
+        // paste carrying no HTML never needs either.
+        let markdown: string;
+        if (clipboard.kind === 'html') {
+          const { convertHtmlToMarkdown } = await import('./turndown');
+          markdown = convertHtmlToMarkdown(clipboard.html);
+        } else {
+          markdown = clipboard.text;
+        }
 
         // Some clipboard HTML converts to nothing at all - Chrome's bare
         // fragment wrapper, or a Word blank paragraph. Fall back to the plain
