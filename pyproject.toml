@@ -43,8 +43,8 @@ artifacts = ["jupyterlab_paste_content_as_markdown_extension/labextension"]
 exclude = [".github", "binder", "docs"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"jupyterlab_paste_content_as_markdown_extension/labextension" = "share/jupyter/labextensions/jupyterlab_paste_content_as_markdown_extension"
-"install.json" = "share/jupyter/labextensions/jupyterlab_paste_content_as_markdown_extension/install.json"
+"jupyterlab_paste_content_as_markdown_extension/labextension" = "share/jupyter/labextensions/@stellarshenson/jupyterlab-paste-content-as-markdown-extension"
+"install.json" = "share/jupyter/labextensions/@stellarshenson/jupyterlab-paste-content-as-markdown-extension/install.json"
 
 [tool.hatch.build.hooks.version]
 path = "jupyterlab_paste_content_as_markdown_extension/_version.py"

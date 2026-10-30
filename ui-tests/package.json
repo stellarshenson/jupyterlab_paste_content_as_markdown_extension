@@ -1,7 +1,7 @@
 {
-  "name": "jupyterlab_paste_content_as_markdown_extension-ui-tests",
+  "name": "@stellarshenson/jupyterlab-paste-content-as-markdown-extension-ui-tests",
   "version": "1.0.0",
-  "description": "JupyterLab jupyterlab_paste_content_as_markdown_extension Integration Tests",
+  "description": "JupyterLab @stellarshenson/jupyterlab-paste-content-as-markdown-extension Integration Tests",
   "private": true,
   "scripts": {
     "start": "jupyter lab --config jupyter_server_test_config.py",

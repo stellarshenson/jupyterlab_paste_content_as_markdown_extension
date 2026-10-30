@@ -12,5 +12,5 @@ except ImportError:
 def _jupyter_labextension_paths():
     return [{
         "src": "labextension",
-        "dest": "jupyterlab_paste_content_as_markdown_extension"
+        "dest": "@stellarshenson/jupyterlab-paste-content-as-markdown-extension"
     }]

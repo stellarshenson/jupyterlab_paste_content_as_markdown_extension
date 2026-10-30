@@ -16,7 +16,8 @@ import { ITranslator, nullTranslator } from '@jupyterlab/translation';
 import { pasteIcon } from '@jupyterlab/ui-components';
 import { clipboardErrorMessage, readClipboard } from './clipboard';
 
-const PLUGIN_ID = 'jupyterlab_paste_content_as_markdown_extension:plugin';
+const PLUGIN_ID =
+  '@stellarshenson/jupyterlab-paste-content-as-markdown-extension:plugin';
 const COMMAND_ID = 'paste-as-markdown:paste';
 
 const COMMAND_LABEL = 'Paste as Markdown';
@@ -67,7 +68,7 @@ function canPasteInto(
 }
 
 /**
- * Initialization data for the jupyterlab_paste_content_as_markdown_extension extension.
+ * Initialization data for the @stellarshenson/jupyterlab-paste-content-as-markdown-extension extension.
  */
 const plugin: JupyterFrontEndPlugin<void> = {
   id: PLUGIN_ID,
@@ -82,7 +83,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     translator: ITranslator | null
   ) => {
     console.log(
-      '[paste-as-markdown] JupyterLab extension jupyterlab_paste_content_as_markdown_extension is activated!'
+      '[paste-as-markdown] JupyterLab extension @stellarshenson/jupyterlab-paste-content-as-markdown-extension is activated!'
     );
 
     const trans = (translator ?? nullTranslator).load(

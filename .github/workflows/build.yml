@@ -43,7 +43,7 @@ jobs:
         python -m pip install .[test]
 
         jupyter labextension list
-        jupyter labextension list 2>&1 | grep -ie "jupyterlab_paste_content_as_markdown_extension.*OK"
+        jupyter labextension list 2>&1 | grep -ie "@stellarshenson/jupyterlab-paste-content-as-markdown-extension.*OK"
         python -m jupyterlab.browser_check
 
     - name: Package the extension
@@ -85,7 +85,7 @@ jobs:
 
 
         jupyter labextension list
-        jupyter labextension list 2>&1 | grep -ie "jupyterlab_paste_content_as_markdown_extension.*OK"
+        jupyter labextension list 2>&1 | grep -ie "@stellarshenson/jupyterlab-paste-content-as-markdown-extension.*OK"
         python -m jupyterlab.browser_check --no-browser-test
 
   integration-tests:
