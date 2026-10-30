@@ -41,7 +41,7 @@ Coverage is file editors and notebook cells. The console prompt, the terminal an
 
 ## Requirements
 
-- JupyterLab >= 4.0.0
+- JupyterLab >= 4.6.0
 
 > [!NOTE]
 > The browser Clipboard API requires a secure context (HTTPS or localhost). If JupyterLab is served over plain HTTP on a remote host, the clipboard read will fail and you will see an error dialog. Use HTTPS or an SSH tunnel in that case.
