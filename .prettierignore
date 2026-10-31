@@ -10,3 +10,4 @@ eslint.config.mjs
 docs/acc-crit.md
 docs/defects.md
 .agents
+package-lock.json

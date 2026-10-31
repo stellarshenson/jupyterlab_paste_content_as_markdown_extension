@@ -14,6 +14,6 @@ project_short_description: Jupyterlab extension to paste contents of the clipboa
     text editor, jupyter notebook cell etc)as markdown code. There will be a 'paste
     as markdown' item in the context menu below 'paste' out of the box item
 python_name: jupyterlab_paste_content_as_markdown_extension
-repository: ''
+repository: https://github.com/stellarshenson/jupyterlab_paste_content_as_markdown_extension
 test: true
 
