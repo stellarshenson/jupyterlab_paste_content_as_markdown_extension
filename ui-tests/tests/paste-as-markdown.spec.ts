@@ -59,7 +59,12 @@ async function openNotebook(page: Page): Promise<void> {
       path: '',
       type: 'notebook'
     });
-    await app.commands.execute('docmanager:open', { path: model.path });
+    const panel = await app.commands.execute('docmanager:open', {
+      path: model.path
+    });
+    // Until the file loads, a spinner covers a placeholder cell, and the load
+    // replaces that cell along with anything a test did to it.
+    await panel.revealed;
   });
 
   const inputArea = page.locator('.jp-Notebook .jp-InputArea-editor').first();
