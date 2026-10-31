@@ -2,6 +2,16 @@
 
 <!-- <START NEW CHANGELOG ENTRY> -->
 
+## [1.0.12] - 2026-10-31
+
+### Changed
+
+- Upgrade to extension template v4.6.5 and Makefile 1.46
+
+### Fixed
+
+- Take the scoped @stellarshenson/jupyterlab-paste-content-as-markdown-extension npm name
+
 ## [1.0.10] - 2026-09-20
 
 ### Changed
