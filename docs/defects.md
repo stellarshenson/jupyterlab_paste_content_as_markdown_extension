@@ -42,6 +42,13 @@ Rewriting clipboard HTML into shapes turndown can convert, before conversion
   - root-cause: 2026-11-13T09:40:07Z @kj Google Docs writes a nested list as a sibling of the `<li>` it belongs under, not as its child; turndown indents a list only when its parent is an `<li>`
   - log: 2026-11-13T09:40:07Z @kj added
   - log: 2026-11-13T09:40:18Z @kj closed
+- [x] `DEF-HTML-8-PRE-BR` **Code block with br line breaks inside pre code pastes as one line** - MAJOR; a `<pre><code>` whose lines end in `<br>`, as Docusaurus and Prism write it, pastes with every line joined inside the fence: `const a = 1;foo(a_b);`; `src/turndown.ts` normaliseInlineMarkup
+  - evidence: the `<br>` line moved above the early return; Jest `keeps the lines of a <pre><code> that separates them with <br>` passes and fails with the move reversed; turndown suite 99 green
+  - repro: convertHtmlToMarkdown on `<pre><code><span>const a = 1;</span><br><span>foo(a_b);</span><br></code></pre>`
+  - test-tags: UNIT
+  - root-cause: 2026-11-13T18:01:51Z @kj the `<br>` to newline line ran after the early return for a `<pre>` whose first child is `<code>`, and turndown reads `textContent`, which holds nothing for a `<br>`
+  - log: 2026-11-13T18:01:51Z @kj added
+  - log: 2026-11-13T18:01:54Z @kj closed
 
 ## Documentation `DOCS`
 

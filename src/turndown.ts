@@ -190,10 +190,10 @@ function normaliseInlineMarkup(root: Document): void {
   // Sphinx, Pygments and GitHub write the highlighted source straight into
   // the `<pre>`, which would otherwise paste as escaped prose on one line.
   root.querySelectorAll('pre').forEach(pre => {
+    pre.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
     if (pre.firstChild?.nodeName === 'CODE') {
       return;
     }
-    pre.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
     const code = root.createElement('code');
     code.textContent = pre.textContent;
     pre.replaceChildren(code);

@@ -551,6 +551,18 @@ describe('convertHtmlToMarkdown', () => {
       ).toBe('```\ndef my_func(a_b):\n    return a_b * 2\nx = [1]\n```');
     });
 
+    it('keeps the lines of a <pre><code> that separates them with <br>', () => {
+      expect(
+        convert(
+          '<p>Run:</p><pre class="prism-code language-js"><code>' +
+            '<span class="token-line"><span class="token keyword">const</span>' +
+            '<span> a = 1;</span><br></span>' +
+            '<span class="token-line"><span>foo(a_b);</span><br></span>' +
+            '</code></pre>'
+        )
+      ).toBe('Run:\n\n```\nconst a = 1;\nfoo(a_b);\n```');
+    });
+
     it('renders <br> as a hard line break', () => {
       expect(convert('<p>one<br>two</p>')).toBe('one  \ntwo');
     });
