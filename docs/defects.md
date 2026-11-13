@@ -35,6 +35,13 @@ Rewriting clipboard HTML into shapes turndown can convert, before conversion
   - test-tags: UNIT
   - log: 2026-11-13T09:21:03Z @kj added
   - log: 2026-11-13T09:21:38Z @kj closed
+- [x] `DEF-HTML-5-SIBLING-LIST` **Google Docs nested list is flattened to one level** - MAJOR; a nested list copied from Google Docs pastes with every sub-item at column 0, so the hierarchy of the list is lost; `src/turndown.ts`
+  - evidence: jest turndown.spec.ts 98 green on 2026-11-13; 'indents a nested list written as a sibling of its item' pins two levels, three levels and the `<p>`-wrapped Docs item; `nestSiblingLists` in `src/turndown.ts`
+  - repro: convert `<ul><li>one</li><ul><li>nested</li></ul><li>two</li></ul>`, observe `nested` with no indentation
+  - test-tags: UNIT
+  - root-cause: 2026-11-13T09:40:07Z @kj Google Docs writes a nested list as a sibling of the `<li>` it belongs under, not as its child; turndown indents a list only when its parent is an `<li>`
+  - log: 2026-11-13T09:40:07Z @kj added
+  - log: 2026-11-13T09:40:18Z @kj closed
 
 ## Documentation `DOCS`
 
@@ -49,4 +56,28 @@ README statements the code does not keep
   - test-tags: MANUAL
   - log: 2026-11-13T09:21:03Z @kj added
   - log: 2026-11-13T09:21:39Z @kj closed
+- [x] `DEF-DOCS-6-STALE-COMMENT` **Comments describe values and messages the code no longer has** - MINOR; `src/index.ts` names a `^4.5.6` pin and loading on JupyterLab 4.0 to 4.4, `src/clipboard.ts` quotes the dialog text "No content available"; the pin is `^4.6.0`, the extension requires JupyterLab 4.6, and the dialog says "Nothing on the clipboard could be converted to markdown."
+  - test-tags: MANUAL
+  - evidence: the comment in `src/index.ts` names `^4.6.0` and no JupyterLab 4.0 to 4.4; the comment at the `text/plain` read in `src/clipboard.ts` quotes the dialog text `src/index.ts` shows when the HTML converts to nothing
+  - repro: read the comment above the `CodeEditor` import in `src/index.ts` and the comment above the `text/plain` read in `src/clipboard.ts`
+  - root-cause: 2026-11-13T09:40:08Z @kj the pin, the JupyterLab floor and the dialog text were changed without the comments that quote them
+  - log: 2026-11-13T09:40:08Z @kj added
+  - log: 2026-11-13T09:40:18Z @kj closed
+  - log: 2026-11-13T09:40:41Z @kj edited test-tags added "MANUAL"; evidence "`grep -n '4.5.6\|4.0 to 4.4\|No content available' src/` prints nothing; the comments name `^4.6.0` and the dialog text of `src/index.ts`" -> "the comment in `src/index.ts` names `^4.6.0` and no JupyterLab 4.0 to 4.4; the comment at the `text/plain` read in `src/clipboard.ts` quotes the dialog text `src/index.ts` shows when the HTML converts to nothing"
+
+## Continuous integration `CI`
+
+Defects of the GitHub Actions workflows.
+
+- log: 2026-11-13T09:40:08Z @kj category created
+
+- [x] `DEF-CI-7-ABSENT-EXTRA` **CI installs an extra the package does not define** - MINOR; the build job runs `python -m pip install .[test]`; `pyproject.toml` defines only the `dev` extra, so pip installs nothing for it and prints a warning; `.github/workflows/build.yml`
+  - test-tags: MANUAL
+  - evidence: `.github/workflows/build.yml` line 43 reads `python -m pip install .`; `grep -rn 'install .\[' .github` prints nothing
+  - repro: run `python -m pip install .[test]`, observe the warning that the package does not provide the extra `test`
+  - root-cause: 2026-11-13T09:40:17Z @kj the workflow step names a `test` extra and `pyproject.toml` declares only `dev` under `[project.optional-dependencies]`
+  - log: 2026-11-13T09:40:08Z @kj added
+  - log: 2026-11-13T09:40:17Z @kj root-cause updated "2026-11-13T09:40:08Z @kj the workflow line comes from the extension template, whose `test` extra this project does not have" -> "the workflow step names a `test` extra and `pyproject.toml` declares only `dev` under `[project.optional-dependencies]`"
+  - log: 2026-11-13T09:40:18Z @kj closed
+  - log: 2026-11-13T09:40:41Z @kj edited test-tags added "MANUAL"
 

@@ -621,6 +621,22 @@ function normaliseTables(root: Document): void {
 }
 
 /**
+ * Move a list that sits beside the items of its parent list into the item
+ * before it.
+ *
+ * Google Docs writes a nested list as a sibling of the `<li>` it belongs
+ * under, which is invalid HTML and which turndown emits with no indentation.
+ */
+function nestSiblingLists(root: Document): void {
+  root.querySelectorAll('ul > ul, ul > ol, ol > ul, ol > ol').forEach(list => {
+    const previous = list.previousElementSibling;
+    if (previous?.tagName === 'LI') {
+      previous.appendChild(list);
+    }
+  });
+}
+
+/**
  * Convert clipboard HTML to markdown.
  *
  * Returns an empty string when the HTML carries nothing convertible, or when
@@ -634,6 +650,7 @@ export function convertHtmlToMarkdown(html: string): string {
     normaliseStyledRuns(document);
     joinAdjacentFormatting(document);
     normaliseWordLists(document);
+    nestSiblingLists(document);
     normaliseTables(document);
     return turndown.turndown(document.body);
   } catch (err) {

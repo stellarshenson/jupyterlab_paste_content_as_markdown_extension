@@ -82,8 +82,9 @@ export async function readClipboard(): Promise<ClipboardResult> {
           // both a second permission prompt and a second chance for the
           // clipboard to have changed underneath. Caught on its own, so a
           // failing optional flavour cannot discard the HTML already read -
-          // and reported, because the user sees only "No content available"
-          // when the HTML then converts to nothing.
+          // and reported, because the user sees only "Nothing on the
+          // clipboard could be converted to markdown." when the HTML then
+          // converts to nothing.
           const text = item.types.includes('text/plain')
             ? await item
                 .getType('text/plain')

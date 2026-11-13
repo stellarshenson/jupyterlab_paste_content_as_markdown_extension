@@ -935,4 +935,36 @@ describe('convertHtmlToMarkdown', () => {
       ).toBe('a\n\nb');
     });
   });
+
+  describe('Google Docs lists', () => {
+    const docs = (body: string): string =>
+      `<b style="font-weight:normal;" id="docs-internal-guid-1">${body}</b>`;
+
+    it('indents a nested list written as a sibling of its item', () => {
+      expect(
+        convert(
+          docs('<ul><li>one</li><ul><li>nested</li></ul><li>two</li></ul>')
+        )
+      ).toBe('-   one\n    -   nested\n-   two');
+
+      expect(
+        convert(
+          docs(
+            '<ul><li>one</li><ol><li>two</li><ul><li>three</li></ul></ol></ul>'
+          )
+        )
+      ).toBe('-   one\n    1.  two\n        -   three');
+
+      // Docs wraps the text of each item in a <p>, which turndown writes as
+      // a loose item: the blank lines stay, the indentation is what matters.
+      expect(
+        convert(
+          docs(
+            '<ul><li><p>one</p></li><ul><li><p>nested</p></li></ul>' +
+              '<li><p>two</p></li></ul>'
+          )
+        )
+      ).toBe('-   one\n    \n    -   nested\n        \n-   two');
+    });
+  });
 });

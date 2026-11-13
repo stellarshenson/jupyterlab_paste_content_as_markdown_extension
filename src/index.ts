@@ -5,8 +5,7 @@ import {
 import { showErrorMessage } from '@jupyterlab/apputils';
 // Type-only, and deliberately a devDependency: a runtime declaration is
 // copied into the shipped labextension manifest and checked against the
-// singleton, where the `^4.5.6` pin below would refuse to load on JupyterLab
-// 4.0 to 4.4. The pin itself is load-bearing where it is - a wider range
+// singleton. The `^4.6.0` pin itself is load-bearing where it is - a wider range
 // resolves a second copy of the package alongside the one the trackers hand
 // back, and the two are not structurally compatible.
 import type { CodeEditor } from '@jupyterlab/codeeditor';
