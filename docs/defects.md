@@ -28,4 +28,25 @@ Rewriting clipboard HTML into shapes turndown can convert, before conversion
   - root-cause: 2026-09-19T20:49:13Z @kj the pattern tests for a substring of a CSS property name, and Word prefixes the same property with `mso-bidi-`
   - log: 2026-09-19T20:49:13Z @kj added
   - log: 2026-09-19T20:59:22Z @kj closed: fixed: UNBOLD anchored on a semicolon or the start of the attribute
+- [x] `DEF-HTML-3-BARE-PRE` **Code block without a code tag pastes as escaped prose** - MAJOR; a `<pre>` holding no `<code>` first child gets no fence: `my_func` pastes as `my\_func`, lines run together when rendered; Sphinx, Pygments and GitHub emit that shape; `src/turndown.ts`
+  - evidence: jest 113 green on 2026-11-13; 'fences a <pre> that holds no <code>, as documentation sites emit' fails without the wrap in normaliseInlineMarkup
+  - root-cause: 2026-11-13T09:21:38Z @kj turndown fences a `<pre>` only when its first child is a `<code>`; any other `<pre>` falls to the default block rule, which escapes markdown characters
+  - repro: convert `<pre>def my_func(a_b):\n    return a_b * 2</pre>`, observe escaped text and no fence
+  - test-tags: UNIT
+  - log: 2026-11-13T09:21:03Z @kj added
+  - log: 2026-11-13T09:21:38Z @kj closed
+
+## Documentation `DOCS`
+
+README statements the code does not keep
+
+- log: 2026-11-13T09:21:03Z @kj category created
+
+- [x] `DEF-DOCS-4-CSS-CLAIM` **README says CSS formatting is lost** - MINOR; How It Works says conversion reads tags, not CSS, and Google Docs bold arrives as plain text; Features and `normaliseStyledRuns` say and do the opposite
+  - evidence: paragraph removed from README.md How It Works; grep 'not CSS' README.md prints nothing
+  - root-cause: 2026-11-13T09:21:38Z @kj the paragraph predates `normaliseStyledRuns` and was not removed when CSS formatting was added
+  - repro: read README.md How It Works beside the Rich text support bullet
+  - test-tags: MANUAL
+  - log: 2026-11-13T09:21:03Z @kj added
+  - log: 2026-11-13T09:21:39Z @kj closed
 

@@ -35,8 +35,6 @@ Images are kept when their source still resolves elsewhere - an `http(s):`, `dat
 
 A link wrapping block content - a heading, a list, a table, or simply a `div` - loses its address: markdown has nowhere to put one, and the content it wraps is worth more than the stray brackets that keeping it would produce.
 
-Conversion reads HTML tags, not CSS. Formatting an application expresses only through a style attribute - Google Docs writes bold as `font-weight:700` rather than `<b>` - arrives as plain text.
-
 Coverage is file editors and notebook cells. The console prompt, the terminal and the Settings raw editor are not covered.
 
 ## Requirements

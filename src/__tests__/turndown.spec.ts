@@ -542,6 +542,15 @@ describe('convertHtmlToMarkdown', () => {
       expect(convert('<pre><code>x = 1</code></pre>')).toBe('```\nx = 1\n```');
     });
 
+    it('fences a <pre> that holds no <code>, as documentation sites emit', () => {
+      expect(
+        convert(
+          '<div class="highlight"><pre><span class="k">def</span> my_func(a_b):\n' +
+            '    <span class="k">return</span> a_b * 2<br>x = [1]</pre></div>'
+        )
+      ).toBe('```\ndef my_func(a_b):\n    return a_b * 2\nx = [1]\n```');
+    });
+
     it('renders <br> as a hard line break', () => {
       expect(convert('<p>one<br>two</p>')).toBe('one  \ntwo');
     });

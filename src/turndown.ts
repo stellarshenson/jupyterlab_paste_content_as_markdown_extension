@@ -186,6 +186,19 @@ function normaliseInlineMarkup(root: Document): void {
     element.remove();
   });
 
+  // Turndown fences a `<pre>` only when its first child is a `<code>`.
+  // Sphinx, Pygments and GitHub write the highlighted source straight into
+  // the `<pre>`, which would otherwise paste as escaped prose on one line.
+  root.querySelectorAll('pre').forEach(pre => {
+    if (pre.firstChild?.nodeName === 'CODE') {
+      return;
+    }
+    pre.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+    const code = root.createElement('code');
+    code.textContent = pre.textContent;
+    pre.replaceChildren(code);
+  });
+
   root.querySelectorAll('b[style],strong[style]').forEach(element => {
     if (UNBOLD.test(element.getAttribute('style') ?? '')) {
       element.replaceWith(...Array.from(element.childNodes));
